@@ -12,7 +12,7 @@ const FORM_SECTIONS=[
  {title:'School fee receipt',fields:[['receipt','Upload a picture or scan of the school fee receipt','file','Accepted: JPG, PNG, or PDF · Maximum 5 MB']]}
 ];
 const BUCKET='fee-receipts';
-let supabase=null,studentSession=null;
+let supabaseClient=null,studentSession=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showMessage(el,msg){el.textContent=msg||''}
