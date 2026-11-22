@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://marianvilless.github.io/registration/sitemap.xml
