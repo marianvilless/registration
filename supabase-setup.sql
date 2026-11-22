@@ -19,6 +19,39 @@ returns boolean
 language sql stable
 as $$ select coalesce(auth.jwt() -> 'app_metadata' ->> 'role' = 'admin', false) $$;
 
+-- A singleton setting controls whether students may create or update their submissions.
+create table if not exists public.registration_settings (
+  singleton boolean primary key default true check (singleton),
+  is_open boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+insert into public.registration_settings (singleton, is_open)
+values (true, true)
+on conflict (singleton) do nothing;
+alter table public.registration_settings enable row level security;
+grant select, update on public.registration_settings to authenticated;
+
+drop policy if exists "Authenticated can read registration status" on public.registration_settings;
+create policy "Authenticated can read registration status"
+on public.registration_settings for select to authenticated
+using (true);
+
+drop policy if exists "Admins can update registration status" on public.registration_settings;
+create policy "Admins can update registration status"
+on public.registration_settings for update to authenticated
+using (public.is_school_admin())
+with check (public.is_school_admin());
+
+create or replace function public.registration_is_open()
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select coalesce((select s.is_open from public.registration_settings s where s.singleton = true), true)
+$$;
+revoke all on function public.registration_is_open() from public;
+grant execute on function public.registration_is_open() to authenticated;
+
 drop policy if exists "Student and admin can read registrations" on public.registrations;
 create policy "Student and admin can read registrations"
 on public.registrations for select to authenticated
@@ -31,17 +64,28 @@ with check (
   user_id = (select auth.uid())
   and lower(student_id) = lower(split_part(auth.jwt() ->> 'email', '@', 1))
   and not public.is_school_admin()
+  and (select public.registration_is_open())
 );
 
 drop policy if exists "Student can update own registration" on public.registrations;
 create policy "Student can update own registration"
 on public.registrations for update to authenticated
-using (user_id = (select auth.uid()) and not public.is_school_admin())
+using (user_id = (select auth.uid()) and not public.is_school_admin() and (select public.registration_is_open()))
 with check (
   user_id = (select auth.uid())
   and lower(student_id) = lower(split_part(auth.jwt() ->> 'email', '@', 1))
   and not public.is_school_admin()
+  and (select public.registration_is_open())
 );
+
+-- Admins can correct any registration directly from the admin dashboard, even while closed.
+drop policy if exists "Admins can edit registrations" on public.registrations;
+create policy "Admins can edit registrations"
+on public.registrations for update to authenticated
+using (public.is_school_admin())
+with check (public.is_school_admin());
+
+grant select, insert, update on public.registrations to authenticated;
 
 -- Private receipt bucket. File size and MIME restrictions are enforced by Storage.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
