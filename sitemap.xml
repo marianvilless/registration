@@ -2,8 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://registration.marianvilless.world/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
   </url>
   <url>
     <loc>https://registration.marianvilless.world/news.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>
