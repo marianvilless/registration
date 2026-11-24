@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://marianvilless.github.io/registration/sitemap.xml
+Sitemap: https://registration.marianvilless.world/sitemap.xml
