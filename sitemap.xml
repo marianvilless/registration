@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://marianvilless.github.io/registration/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <loc>https://registration.marianvilless.world/</loc>
   </url>
   <url>
-    <loc>https://marianvilless.github.io/registration/news.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://registration.marianvilless.world/news.html</loc>
   </url>
 </urlset>
