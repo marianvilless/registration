@@ -93,8 +93,7 @@
         form.elements.grade.value = data.grade || '';
         form.elements.class.value = data.class || '';
         form.elements.fee_amount.value = data.fee_amount ?? '';
-        const display = { ...data, block_name: data.dormitory_blocks?.name };
-        status.textContent = statusText(display);
+        status.textContent = statusText({ ...data, block_name: data.dormitory_blocks?.name });
         status.hidden = false;
         return data;
       }
@@ -122,7 +121,6 @@
             receiptPath = newlyUploadedPath;
           }
           if (!receiptPath) throw new Error('Please upload a school fee payment receipt.');
-
           const payload = {
             user_id: session.user.id,
             student_id: studentId,
@@ -148,22 +146,67 @@
       });
     }
 
+    function createAdminTabs(workspace) {
+      if (workspace.dataset.boardingTabsReady === 'true') return workspace.querySelector('[data-boarding-tab-panel="boarding"]');
+      workspace.dataset.boardingTabsReady = 'true';
+      const originalContent = document.createDocumentFragment();
+      while (workspace.firstChild) originalContent.append(workspace.firstChild);
+
+      const tabs = document.createElement('div');
+      tabs.className = 'actions';
+      tabs.setAttribute('role', 'tablist');
+      tabs.setAttribute('aria-label', 'Administration sections');
+      tabs.style.marginBottom = '18px';
+      tabs.innerHTML = '<button type="button" class="button primary" role="tab" aria-selected="true" aria-controls="admin-registration-tab" data-admin-tab="registration">Student registrations</button><button type="button" class="button outline" role="tab" aria-selected="false" aria-controls="admin-boarding-tab" data-admin-tab="boarding">Boarding</button>';
+
+      const registrations = document.createElement('section');
+      registrations.id = 'admin-registration-tab';
+      registrations.dataset.boardingTabPanel = 'registration';
+      registrations.setAttribute('role', 'tabpanel');
+      registrations.append(originalContent);
+
+      const boarding = document.createElement('section');
+      boarding.id = 'admin-boarding-tab';
+      boarding.dataset.boardingTabPanel = 'boarding';
+      boarding.setAttribute('role', 'tabpanel');
+      boarding.hidden = true;
+
+      workspace.append(tabs, registrations, boarding);
+      tabs.querySelectorAll('[data-admin-tab]').forEach(button => {
+        button.addEventListener('click', () => {
+          const selected = button.dataset.adminTab;
+          tabs.querySelectorAll('[data-admin-tab]').forEach(tab => {
+            const active = tab === button;
+            tab.setAttribute('aria-selected', String(active));
+            tab.classList.toggle('primary', active);
+            tab.classList.toggle('outline', !active);
+          });
+          registrations.hidden = selected !== 'registration';
+          boarding.hidden = selected !== 'boarding';
+        });
+      });
+      return boarding;
+    }
+
     async function addAdminBoardingTools() {
       const workspace = document.querySelector('#adminWorkspace');
-      if (!workspace || workspace.querySelector('[data-boarding-admin]') || !workspace.querySelector('table')) return;
+      if (!workspace || !workspace.querySelector('table')) return;
       const { data: { session } } = await client.auth.getSession();
       if (session?.user?.app_metadata?.role !== 'admin') return;
+
+      const boardingTab = createAdminTabs(workspace);
+      if (!boardingTab || boardingTab.querySelector('[data-boarding-admin]')) return;
 
       const panel = document.createElement('section');
       panel.dataset.boardingAdmin = 'true';
       panel.className = 'panel';
-      panel.style.margin = '18px 0';
-      panel.innerHTML = `<h3>Boarding allocation</h3>
+      panel.innerHTML = `<h2>Boarding management</h2>
+        <p class="hint">Manage dormitory blocks, room capacity and boarding decisions here. Student registration records remain in the Student registrations tab.</p>
         <div class="form-grid">
           <label>Student name<input data-filter-name></label><label>Grade<input data-filter-grade></label>
           <label>Class<input data-filter-class></label><label>Block<select data-filter-block><option value="">All blocks</option></select></label>
         </div><div id="blockSettings"></div><div id="boardingDatabase"><p>Loading boarding applications…</p></div>`;
-      workspace.insertBefore(panel, workspace.querySelector('table')?.closest('.table-wrap') || workspace.lastElementChild);
+      boardingTab.append(panel);
 
       let blocks = [];
       let applications = [];
@@ -185,7 +228,7 @@
 
       function renderBlocks() {
         const root = panel.querySelector('#blockSettings');
-        root.innerHTML = '<h4>Dormitory blocks</h4><div class="form-grid" data-block-rows></div><button type="button" class="button outline" data-add-block>Add block</button>';
+        root.innerHTML = '<h3>Dormitory blocks and rooms</h3><div class="form-grid" data-block-rows></div><button type="button" class="button outline" data-add-block>Add block</button>';
         const rows = root.querySelector('[data-block-rows]');
         for (const block of blocks) {
           const card = document.createElement('div');
@@ -232,7 +275,7 @@
         });
 
         const root = panel.querySelector('#boardingDatabase');
-        root.innerHTML = `<h4>Boarding applications · ${filtered.length}</h4>
+        root.innerHTML = `<h3>Boarding applications · ${filtered.length}</h3>
           <div class="table-wrap"><table><thead><tr><th>Student</th><th>Grade</th><th>Class</th><th>Fee</th><th>Block</th><th>Room</th><th>Decision</th><th></th></tr></thead>
           <tbody>${filtered.map(application => {
             const block = blocks.find(item => Number(item.id) === Number(application.allocated_block_id));
