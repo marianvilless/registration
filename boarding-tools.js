@@ -1,9 +1,9 @@
-/* Boarding portal UI and admin block allocation. */
+/* Boarding registration and admin allocation tools. */
 (() => {
   const waitForClient = callback => {
     const started = Date.now();
     const timer = setInterval(() => {
-      if (window.supabase && typeof window.supabase.from === 'function') {
+      if (window.supabase?.from) {
         clearInterval(timer);
         callback(window.supabase);
       } else if (Date.now() - started > 15000) {
@@ -17,6 +17,18 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 
+  const statusText = application => {
+    if (!application) return '';
+    if (application.allocation_status === 'allocated') {
+      const dorm = application.block_name || 'dormitory pending confirmation';
+      const room = application.room_number ? `, Room ${application.room_number}` : ', room pending confirmation';
+      return `Approved — you are assigned to ${dorm}${room}.`;
+    }
+    if (application.allocation_status === 'waiting_list') return 'Your boarding application is on the waiting list. The school will contact you when space becomes available.';
+    if (application.allocation_status === 'rejected') return 'Your boarding application was not approved. Please contact the school office if you have questions.';
+    return 'Your application has been received and is awaiting a boarding decision.';
+  };
+
   waitForClient(client => {
     let studentSectionAdded = false;
 
@@ -25,7 +37,6 @@
       const form = document.querySelector('#registrationForm');
       if (!message || !form || form.querySelector('[data-boarding-prompt]')) return;
       if (!message.textContent.toLowerCase().includes('saved successfully')) return;
-
       const prompt = document.createElement('div');
       prompt.dataset.boardingPrompt = 'true';
       prompt.className = 'notice';
@@ -54,27 +65,40 @@
       section.className = 'panel';
       section.innerHTML = `<h2>Boarding registration</h2>
         <p class="hint">Apply for a dormitory place and upload evidence of school fee payment.</p>
+        <div class="notice" data-boarding-status role="status" hidden></div>
         <form id="boardingForm"><div class="form-grid">
           <label>Student name<input name="student_name" required></label>
           <label>Grade<select name="grade" required><option value="">Select grade</option><option>9</option><option>10</option><option>11</option><option>12</option></select></label>
           <label>Class<input name="class" required placeholder="e.g. 9A"></label>
           <label>School fee payment amount (PGK)<input name="fee_amount" type="number" min="0" step="0.01" required></label>
           <label>School fee payment receipt<input name="fee_receipt" type="file" accept="image/jpeg,image/png,application/pdf"></label>
-        </div><button type="submit" class="button primary">Submit boarding application</button><p id="boardingMessage" role="status"></p></form>`;
+        </div><button type="submit" class="button primary">Submit boarding application</button><p data-boarding-message role="status"></p></form>`;
       workspace.append(section);
 
       const form = section.querySelector('#boardingForm');
-      const message = section.querySelector('#boardingMessage');
+      const message = section.querySelector('[data-boarding-message]');
+      const status = section.querySelector('[data-boarding-status]');
       const studentId = session.user.email?.split('@')[0] || '';
-      const { data, error: loadError } = await client.from('boarding_applications').select('*').eq('user_id', session.user.id).maybeSingle();
-      if (loadError) message.textContent = 'Could not load your saved boarding application. Please try again.';
-      if (data) {
+
+      async function loadApplication() {
+        const { data, error } = await client.from('boarding_applications')
+          .select('*,dormitory_blocks(name)').eq('user_id', session.user.id).maybeSingle();
+        if (error) {
+          message.textContent = 'Could not load your saved boarding application. Please try again.';
+          console.error(error);
+          return null;
+        }
+        if (!data) return null;
         form.elements.student_name.value = data.student_name || '';
         form.elements.grade.value = data.grade || '';
         form.elements.class.value = data.class || '';
         form.elements.fee_amount.value = data.fee_amount ?? '';
-        message.textContent = data.allocation_status === 'allocated' ? 'Your boarding application has been allocated.' : 'Your boarding application is pending allocation.';
+        const display = { ...data, block_name: data.dormitory_blocks?.name };
+        status.textContent = statusText(display);
+        status.hidden = false;
+        return data;
       }
+      await loadApplication();
 
       form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -83,9 +107,10 @@
         message.textContent = 'Submitting application…';
         let newlyUploadedPath = null;
         try {
-          const existingResult = await client.from('boarding_applications').select('fee_receipt_path').eq('user_id', session.user.id).maybeSingle();
-          if (existingResult.error) throw existingResult.error;
-          let receiptPath = existingResult.data?.fee_receipt_path || null;
+          const { data: existing, error: existingError } = await client.from('boarding_applications')
+            .select('fee_receipt_path').eq('user_id', session.user.id).maybeSingle();
+          if (existingError) throw existingError;
+          let receiptPath = existing?.fee_receipt_path || null;
           const file = form.elements.fee_receipt.files[0];
           if (file) {
             if (file.size > 5242880) throw new Error('The receipt must be smaller than 5 MB.');
@@ -110,10 +135,9 @@
           };
           const { error } = await client.from('boarding_applications').upsert(payload, { onConflict: 'user_id' });
           if (error) throw error;
-          if (file && existingResult.data?.fee_receipt_path) {
-            await client.storage.from('boarding-fees').remove([existingResult.data.fee_receipt_path]);
-          }
+          if (file && existing?.fee_receipt_path) await client.storage.from('boarding-fees').remove([existing.fee_receipt_path]);
           message.textContent = 'Your boarding application was submitted successfully.';
+          await loadApplication();
         } catch (error) {
           if (newlyUploadedPath) await client.storage.from('boarding-fees').remove([newlyUploadedPath]);
           console.error('Could not submit boarding application', error);
@@ -134,7 +158,7 @@
       panel.dataset.boardingAdmin = 'true';
       panel.className = 'panel';
       panel.style.margin = '18px 0';
-      panel.innerHTML = `<h3>Boarding allocation settings</h3>
+      panel.innerHTML = `<h3>Boarding allocation</h3>
         <div class="form-grid">
           <label>Student name<input data-filter-name></label><label>Grade<input data-filter-grade></label>
           <label>Class<input data-filter-class></label><label>Block<select data-filter-block><option value="">All blocks</option></select></label>
@@ -143,7 +167,6 @@
 
       let blocks = [];
       let applications = [];
-
       async function load() {
         const [blockResult, applicationResult] = await Promise.all([
           client.from('dormitory_blocks').select('*').order('name'),
@@ -200,7 +223,6 @@
         const blockFilter = panel.querySelector('[data-filter-block]');
         const selectedBlock = blockFilter.value;
         blockFilter.innerHTML = '<option value="">All blocks</option>' + blocks.map(block => `<option value="${block.id}" ${String(block.id) === selectedBlock ? 'selected' : ''}>${esc(block.name)}</option>`).join('');
-
         const filtered = applications.filter(application => {
           const block = blocks.find(item => Number(item.id) === Number(application.allocated_block_id));
           return (!nameFilter || application.student_name?.toLowerCase().includes(nameFilter)) &&
@@ -210,18 +232,18 @@
         });
 
         const root = panel.querySelector('#boardingDatabase');
-        root.innerHTML = `<h4>Boarding database · ${filtered.length} application(s)</h4>
-          <div class="table-wrap"><table><thead><tr><th>Student</th><th>Grade</th><th>Class</th><th>Fee</th><th>Receipt</th><th>Block</th><th>Room</th><th></th></tr></thead>
+        root.innerHTML = `<h4>Boarding applications · ${filtered.length}</h4>
+          <div class="table-wrap"><table><thead><tr><th>Student</th><th>Grade</th><th>Class</th><th>Fee</th><th>Block</th><th>Room</th><th>Decision</th><th></th></tr></thead>
           <tbody>${filtered.map(application => {
             const block = blocks.find(item => Number(item.id) === Number(application.allocated_block_id));
             const rooms = block?.room_numbers || [];
             return `<tr data-application="${esc(application.id)}">
               <td>${esc(application.student_name || application.student_id)}</td><td>${esc(application.grade || '—')}</td><td>${esc(application.class || '—')}</td>
-              <td>${application.fee_amount == null ? '—' : `PGK ${Number(application.fee_amount).toFixed(2)}`}</td>
-              <td>${application.fee_receipt_path ? 'Uploaded' : 'Missing'}</td>
-              <td><select data-change-block><option value="">Unallocated</option>${blocks.map(item => `<option value="${item.id}" ${Number(item.id) === Number(application.allocated_block_id) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></td>
+              <td>${application.fee_amount == null ? '—' : `PGK ${Number(application.fee_amount).toFixed(2)}`}<br>${application.fee_receipt_path ? 'Receipt uploaded' : 'Receipt missing'}</td>
+              <td><select data-change-block><option value="">No dormitory</option>${blocks.map(item => `<option value="${item.id}" ${Number(item.id) === Number(application.allocated_block_id) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></td>
               <td><select data-change-room><option value="">Select room</option>${rooms.map(room => `<option value="${esc(room)}" ${room === application.room_number ? 'selected' : ''}>${esc(room)}</option>`).join('')}</select></td>
-              <td><button type="button" class="button outline small" data-save-allocation>Save</button></td></tr>`;
+              <td><select data-change-status><option value="pending" ${application.allocation_status === 'pending' ? 'selected' : ''}>Pending review</option><option value="allocated" ${application.allocation_status === 'allocated' ? 'selected' : ''}>Approved</option><option value="waiting_list" ${application.allocation_status === 'waiting_list' ? 'selected' : ''}>Waiting list</option><option value="rejected" ${application.allocation_status === 'rejected' ? 'selected' : ''}>Rejected</option></select></td>
+              <td><button type="button" class="button primary small" data-save-allocation>Save decision</button></td></tr>`;
           }).join('')}</tbody></table></div>`;
 
         root.querySelectorAll('tbody tr').forEach(row => {
@@ -234,10 +256,15 @@
           row.querySelector('[data-save-allocation]').addEventListener('click', async () => {
             const blockValue = blockSelect.value;
             const room = roomSelect.value || null;
+            const decision = row.querySelector('[data-change-status]').value;
+            if (decision === 'allocated' && (!blockValue || !room)) {
+              alert('Choose a dormitory and room before approving this application.');
+              return;
+            }
             const { error } = await client.from('boarding_applications').update({
               allocated_block_id: blockValue ? Number(blockValue) : null,
-              room_number: blockValue ? room : null,
-              allocation_status: blockValue ? 'allocated' : 'pending',
+              room_number: decision === 'allocated' ? room : null,
+              allocation_status: decision,
               updated_at: new Date().toISOString()
             }).eq('id', row.dataset.application);
             if (error) alert(error.message); else await load();
