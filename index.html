@@ -31,17 +31,14 @@
     "logo": "https://registration.marianvilless.world/Logo.png",
     "image": "https://registration.marianvilless.world/heart.jpg",
     "description": "A secondary school in Port Moresby, Papua New Guinea, focused on learning, leadership and service.",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Port Moresby",
-      "addressCountry": "PG"
-    }
+    "address": { "@type": "PostalAddress", "addressLocality": "Port Moresby", "addressCountry": "PG" }
   }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script defer src="app.js"></script>
   <script defer src="boarding-tools.js"></script>
+  <script defer src="registration-documents.js"></script>
   <script defer src="submission-view.js"></script>
   <script defer src="assistant.js"></script>
 </head>
@@ -58,53 +55,25 @@
     </div>
     <a class="button primary desktop" href="index.html#registration" data-page="registration">Student sign in →</a>
   </nav></header>
-
   <main>
-    <section class="page active" id="home">
-      <div class="hero"><div class="wrap hero-inner">
-        <div><span class="eyebrow">Welcome to Marianville</span><h1>Educating for a <em>brighter</em> tomorrow.</h1>
-          <p>A community where young people are encouraged to learn with purpose, grow in character and serve with compassion.</p>
-          <div class="actions"><a class="button light" href="index.html#registration" data-page="registration">Student registration →</a><a class="button ghost" href="news.html">Latest school news →</a></div>
-        </div>
-        <figure class="hero-photo">
-          <img src="heart.jpg" alt="Marianville students and staff standing together in a heart-shaped formation" width="1200" height="900">
-          <figcaption><span>Our community</span>Faith. Learning. Service.</figcaption>
-        </figure>
-      </div></div>
-      <section class="section wrap"><span class="eyebrow dark">The Marianville difference</span><h2>A place to learn, belong and become.</h2>
-        <div class="three"><article class="card"><b>01 · Learning with purpose</b><p>Supporting curiosity, strong foundations and lifelong learning.</p></article><article class="card"><b>02 · Character that matters</b><p>Encouraging respect, integrity and service to others.</p></article><article class="card"><b>03 · Community and faith</b><p>Growing together through faith, friendship and shared responsibility.</p></article></div>
-      </section>
-      <section class="section tint"><div class="wrap"><span class="eyebrow dark">From our community</span><h2>School news &amp; notices</h2><div id="homeNews" class="three"></div><a class="button outline" href="news.html">View all news →</a></div></section>
+    <section class="page active" id="home"><div class="hero"><div class="wrap hero-inner">
+      <div><span class="eyebrow">Welcome to Marianville</span><h1>Educating for a <em>brighter</em> tomorrow.</h1><p>A community where young people are encouraged to learn with purpose, grow in character and serve with compassion.</p>
+        <div class="actions"><a class="button light" href="index.html#registration" data-page="registration">Student registration →</a><a class="button ghost" href="news.html">Latest school news →</a></div>
+      </div><figure class="hero-photo"><img src="heart.jpg" alt="Marianville students and staff standing together in a heart-shaped formation" width="1200" height="900"><figcaption><span>Our community</span>Faith. Learning. Service.</figcaption></figure>
+    </div></div>
+    <section class="section wrap"><span class="eyebrow dark">The Marianville difference</span><h2>A place to learn, belong and become.</h2><div class="three"><article class="card"><b>01 · Learning with purpose</b><p>Supporting curiosity, strong foundations and lifelong learning.</p></article><article class="card"><b>02 · Character that matters</b><p>Encouraging respect, integrity and service to others.</p></article><article class="card"><b>03 · Community and faith</b><p>Growing together through faith, friendship and shared responsibility.</p></article></div></section>
+    <section class="section tint"><div class="wrap"><span class="eyebrow dark">From our community</span><h2>School news &amp; notices</h2><div id="homeNews" class="three"></div><a class="button outline" href="news.html">View all news →</a></div></section>
     </section>
-
-    <section class="page" id="news">
-      <div class="page-title"><div class="wrap"><span class="eyebrow dark">For parents &amp; guardians</span><h1>News &amp; notices</h1><p>School updates and reminders for the Marianville community.</p></div></div>
-      <div class="section wrap"><div id="allNews" class="three"></div></div>
-    </section>
-
-    <section class="page" id="registration">
-      <div class="page-title"><div class="wrap"><span class="eyebrow dark">Student &amp; family portal</span><h1>Student registration</h1><p>Sign in with your school-issued student ID and password, then review and save the school registration form.</p></div></div>
-      <div class="section wrap">
-        <div id="studentLogin" class="panel narrow"><h2>Student sign in</h2><p>Use your student ID and the password provided by the school administrator.</p>
-          <form id="studentLoginForm"><label>Student ID<input id="studentId" autocomplete="username" required placeholder="e.g. MSS-2026-001"></label><label>Password<input id="studentPassword" type="password" autocomplete="current-password" required></label><button class="button primary">Sign in</button><p id="studentLoginError" class="error" role="alert"></p></form>
-          <p class="hint">Forgot your details? Contact the school office. Accounts must be created by an administrator in Supabase.</p>
-        </div>
-        <div id="studentWorkspace" class="hidden"></div>
-      </div>
-    </section>
-
-    <section class="page" id="admin">
-      <div class="page-title"><div class="wrap"><span class="eyebrow dark">School staff</span><h1>Administration portal</h1><p>Authorized staff can review submitted registration details and securely manage administration records.</p></div></div>
-      <div class="section wrap">
-        <div id="adminLogin" class="panel narrow"><h2>Administrator sign in</h2><p>Sign in using your administrator email and password.</p>
-          <form id="adminLoginForm"><label>Email<input id="adminEmail" type="email" autocomplete="username" required></label><label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label><button class="button primary">Sign in</button><p id="adminLoginError" class="error" role="alert"></p></form>
-          <p class="hint">Administrator accounts and access roles must be configured by a trusted project owner.</p>
-        </div>
-        <div id="adminWorkspace" class="hidden"></div>
-      </div>
-    </section>
+    <section class="page" id="news"><div class="page-title"><div class="wrap"><span class="eyebrow dark">For parents &amp; guardians</span><h1>News &amp; notices</h1><p>School updates and reminders for the Marianville community.</p></div></div><div class="section wrap"><div id="allNews" class="three"></div></div></section>
+    <section class="page" id="registration"><div class="page-title"><div class="wrap"><span class="eyebrow dark">Student &amp; family portal</span><h1>Student registration</h1><p>Sign in with your school-issued student ID and password, then review and save the school registration form.</p></div></div><div class="section wrap">
+      <div id="studentLogin" class="panel narrow"><h2>Student sign in</h2><p>Use your student ID and the password provided by the school administrator.</p><form id="studentLoginForm"><label>Student ID<input id="studentId" autocomplete="username" required placeholder="e.g. MSS-2026-001"></label><label>Password<input id="studentPassword" type="password" autocomplete="current-password" required></label><button class="button primary">Sign in</button><p id="studentLoginError" class="error" role="alert"></p></form><p class="hint">Forgot your details? Contact the school office. Accounts must be created by an administrator in Supabase.</p></div>
+      <div id="studentWorkspace" class="hidden"></div>
+    </div></section>
+    <section class="page" id="admin"><div class="page-title"><div class="wrap"><span class="eyebrow dark">School staff</span><h1>Administration portal</h1><p>Authorized staff can review submitted registration details and securely manage administration records.</p></div></div><div class="section wrap">
+      <div id="adminLogin" class="panel narrow"><h2>Administrator sign in</h2><p>Sign in using your administrator email and password.</p><form id="adminLoginForm"><label>Email<input id="adminEmail" type="email" autocomplete="username" required></label><label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label><button class="button primary">Sign in</button><p id="adminLoginError" class="error" role="alert"></p></form><p class="hint">Administrator accounts and access roles must be configured by a trusted project owner.</p></div>
+      <div id="adminWorkspace" class="hidden"></div>
+    </div></section>
   </main>
-
   <footer><div class="wrap footer"><a class="brand" href="index.html"><img class="crest" src="Logo.png" alt="Marianville Secondary School logo" style="object-fit:contain;width:48px;height:48px"><span>Marianville Secondary<small>School</small></span></a><p>© <span id="year"></span> Marianville Secondary School · Port Moresby, Papua New Guinea</p></div></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
